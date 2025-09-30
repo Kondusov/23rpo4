@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpongeBob Minecraft Adventure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(to bottom, #87CEEB, #E0F7FA);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #FF9800;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .game-canvas-container {
+            position: relative;
+            width: 100%;
+            height: 450px;
+            border: 3px solid #2E7D32;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            background-color: #8BC34A;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .ui-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .stats-panel {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .health-bar {
+            width: 200px;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 5px;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 100%;
+            transition: width 0.3s;
+        }
+        
+        .inventory {
+            display: flex;
+            gap: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .inventory-slot {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #795548;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #A1887F;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        
+        .inventory-slot.active {
+            border-color: #FFC107;
+            box-shadow: 0 0 8px #FFC107;
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        button {
+            padding: 10px;
+            background-color: #FF9800;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #F57C00;
+        }
+        
+        .instructions {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .instructions h3 {
+            color: #FF9800;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            list-style-type: none;
+            padding-left: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .enemy {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #f44336;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .boss {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background-color: #9C27B0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .game-over, .victory {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 100;
+            display: none;
+        }
+        
+        .game-over h2, .victory h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #f44336;
+        }
+        
+        .victory h2 {
+            color: #4CAF50;
+        }
+        
+        .save-load {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>SpongeBob Minecraft Adventure</h1>
+        
+        <div class="ui-container">
+            <div class="stats-panel">
+                <div>Уровень здоровья:</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="health-fill"></div>
+                </div>
+                <div>Блоки: <span id="blocks-count">0</span></div>
+                <div>Убито врагов: <span id="enemies-defeated">0</span>/3</div>
+            </div>
+            
+            <div class="inventory">
+                <div class="inventory-slot active" data-block="grass">🌿</div>
+                <div class="inventory-slot" data-block="dirt">🟫</div>
+                <div class="inventory-slot" data-block="wood">🟤</div>
+                <div class="inventory-slot" data-block="stone">⬜</div>
+            </div>
+        </div>
+        
+        <div class="game-canvas-container">
+            <canvas id="game-canvas" width="800" height="450"></canvas>
+            
+            <div class="game-over" id="game-over">
+                <h2>Игра окончена!</h2>
+                <p>Акула победила Спанч Боба</p>
+                <button id="restart-btn">Начать заново</button>
+            </div>
+            
+            <div class="victory" id="victory">
+                <h2>Победа!</h2>
+                <p>Вы победили пирата и спасли Бикини Боттом!</p>
+                <button id="next-level-btn">Следующий уровень</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="attack-btn">Атаковать (Пробел)</button>
+            <button id="craft-btn">Крафт (C)</button>
+            <div class="save-load">
+                <button id="save-btn">Сохранить</button>
+                <button id="load-btn">Загрузить</button>
+            </div>
+        </div>
+        
+        <div class="instructions">
+            <h3>Управление:</h3>
+            <ul>
+                <li>WASD - движение</li>
+                <li>Пробел - атаковать врагов</li>
+                <li>ЛКМ - разрушать блоки</li>
+                <li>ПКМ - ставить блоки</li>
+                <li>C - открыть меню крафта</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Основные переменные игры
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const inventorySlots = document.querySelectorAll('.inventory-slot');
+        const blocksCountElement = document.getElementById('blocks-count');
+        const healthFill = document.getElementById('health-fill');
+        const enemiesDefeatedElement = document.getElementById('enemies-defeated');
+        const gameOverScreen = document.getElementById('game-over');
+        const victoryScreen = document.getElementById('victory');
+        const restartBtn = document.getElementById('restart-btn');
+        const nextLevelBtn = document.getElementById('next-level-btn');
+        const attackBtn = document.getElementById('attack-btn');
+        const craftBtn = document.getElementById('craft-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const loadBtn = document.getElementById('load-btn');
+        
+        // Игровые переменные
+        let gameRunning = true;
+        let player = {
+            x: 400,
+            y: 250,
+            width: 30,
+            height: 50,
+            velocityX: 0,
+            velocityY: 0,
+            speed: 3,
+            jumpForce: 12,
+            grounded: false,
+            health: 100,
+            blocks: 0,
+            enemiesDefeated: 0
+        };
+        
+        let blocks = [];
+        let enemies = [];
+        let boss = null;
+        let gravity = 0.5;
+        let selectedBlock = 'grass';
+        let camera = { x: 0, y: 0 };
+        let attackCooldown = 0;
+        let gameLevel = 1;
+        
+        // Блоки для мира
+        const blockTypes = {
+            grass: { color: '#8BC34A', breakable: true },
+            dirt: { color: '#795548', breakable: true },
+            wood: { color: '#5D4037', breakable: true },
+            stone: { color: '#9E9E9E', breakable: true }
+        };
+        
+        // Создание начального мира
+        function generateWorld() {
+            blocks = [];
+            enemies = [];
+            boss = null;
+            
+            // Создаем землю
+            for (let x = 0; x < 40; x++) {
+                for (let y = 0; y < 5; y++) {
+                    blocks.push({
+                        x: x * 40,
+                        y: canvas.height - (y * 40),
+                        width: 40,
+                        height: 40,
+                        type: y === 0 ? 'grass' : 'dirt'
+                    });
+                }
+            }
+            
+            // Добавляем несколько деревьев
+            for (let i = 0; i < 5; i++) {
+                const treeX = 200 + i * 200;
+                const treeY = canvas.height - 40;
+                
+                // Ствол дерева
+                for (let j = 0; j < 4; j++) {
+                    blocks.push({
+                        x: treeX,
+                        y: treeY - (j * 40),
+                        width: 40,
+                        height: 40,
+                        type: 'wood'
+                    });
+                }
+                
+                // Листья дерева
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -3; dy <= -1; dy++) {
+                        if (dx === 0 && dy === -3) continue;
+                        blocks.push({
+                            x: treeX + dx * 40,
+                            y: treeY + dy * 40,
+                            width: 40,
+                            height: 40,
+                            type: 'grass'
+                        });
+                    }
+                }
+            }
+            
+            // Добавляем камни
+            for (let i = 0; i < 10; i++) {
+                blocks.push({
+                    x: 100 + i * 80,
+                    y: canvas.height - 80,
+                    width: 40,
+                    height: 40,
+                    type: 'stone'
+                });
+            }
+            
+            // Добавляем врагов (акул)
+            if (gameLevel === 1) {
+                for (let i = 0; i < 3; i++) {
+                    enemies.push({
+                        x: 300 + i * 150,
+                        y: canvas.height - 80,
+                        width: 40,
+                        height: 40,
+                        speed: 1.5,
+                        health: 30,
+                        damage: 10,
+                        attackCooldown: 0,
+                        type: 'shark'
+                    });
+                }
+            } else if (gameLevel === 2) {
+                // Босс - пират
+                boss = {
+                    x: 600,
+                    y: canvas.height - 80,
+                    width: 60,
+                    height: 60,
+                    speed: 1,
+                    health: 100,
+                    damage: 20,
+                    attackCooldown: 0,
+                    type: 'pirate'
+                };
+            }
+        }
+        
+        // Отрисовка игрока (SpongeBob)
+        function drawPlayer() {
+            // Тело (квадрат как у Спанч Боба)
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(player.x - camera.x, player.y - camera.y, player.width, player.height);
+            
+            // Глаза
+            ctx.fillStyle = 'white';
+            ctx.fillRect(player.x - camera.x + 5, player.y - camera.y + 10, 7, 7);
+            ctx.fillRect(player.x - camera.x + 18, player.y - camera.y + 10, 7, 7);
+            
+            ctx.fillStyle = 'brown';
+            ctx.fillRect(player.x - camera.x + 6, player.y - camera.y + 11, 5, 5);
+            ctx.fillRect(player.x - camera.x + 19, player.y - camera.y + 11, 5, 5);
+            
+            // Рот
+            ctx.fillStyle = 'red';
+            ctx.fillRect(player.x - camera.x + 10, player.y - camera.y + 25, 10, 3);
+            
+            // Ноги
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(player.x - camera.x + 5, player.y - camera.y + 45, 8, 5);
+            ctx.fillRect(player.x - camera.x + 17, player.y - camera.y + 45, 8, 5);
+            
+            // Отрисовка здоровья игрока
+            ctx.fillStyle = 'red';
+            ctx.fillRect(player.x - camera.x, player.y - camera.y - 10, player.width, 5);
+            ctx.fillStyle = 'green';
+            ctx.fillRect(player.x - camera.x, player.y - camera.y - 10, player.width * (player.health / 100), 5);
+        }
+        
+        // Отрисовка врагов
+        function drawEnemies() {
+            enemies.forEach(enemy => {
+                if (enemy.type === 'shark') {
+                    // Акула
+                    ctx.fillStyle = '#f44336';
+                    ctx.beginPath();
+                    ctx.ellipse(enemy.x - camera.x + enemy.width/2, enemy.y - camera.y + enemy.height/2, enemy.width/2, enemy.height/2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Глаза акулы
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(enemy.x - camera.x + enemy.width - 10, enemy.y - camera.y + 10, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Зубы акулы
+                    ctx.fillStyle = 'white';
+                    for (let i = 0; i < 4; i++) {
+                        ctx.fillRect(enemy.x - camera.x + 5 + i*8, enemy.y - camera.y + enemy.height - 10, 5, 5);
+                    }
+                    
+                    // Полоска здоровья
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(enemy.x - camera.x, enemy.y - camera.y - 10, enemy.width, 5);
+                    ctx.fillStyle = 'green';
+                    ctx.fillRect(enemy.x - camera.x, enemy.y - camera.y - 10, enemy.width * (enemy.health / 30), 5);
+                }
+            });
+            
+            // Отрисовка босса
+            if (boss) {
+                ctx.fillStyle = '#9C27B0';
+                ctx.fillRect(boss.x - camera.x, boss.y - camera.y, boss.width, boss.height);
+                
+                // Глазная повязка
+                ctx.fillStyle = 'black';
+                ctx.fillRect(boss.x - camera.x + 5, boss.y - camera.y + 10, 15, 5);
+                
+                // Борода
+                ctx.fillStyle = '#795548';
+                ctx.fillRect(boss.x - camera.x + 5, boss.y - camera.y + 40, boss.width - 10, 15);
+                
+                // Полоска здоровья
+                ctx.fillStyle = 'red';
+                ctx.fillRect(boss.x - camera.x, boss.y - camera.y - 10, boss.width, 5);
+                ctx.fillStyle = 'green';
+                ctx.fillRect(boss.x - camera.x, boss.y - camera.y - 10, boss.width * (boss.health / 100), 5);
+                
+                // Метка "ПИРАТ"
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.fillText('ПИРАТ', boss.x - camera.x + 5, boss.y - camera.y + 25);
+            }
+        }
+        
+        // Отрисовка блоков
+        function drawBlocks() {
+            blocks.forEach(block => {
+                ctx.fillStyle = blockTypes[block.type].color;
+                ctx.fillRect(block.x - camera.x, block.y - camera.y, block.width, block.height);
+                
+                // Контур блока
+                ctx.strokeStyle = '#000';
+                ctx.strokeRect(block.x - camera.x, block.y - camera.y, block.width, block.height);
+            });
+        }
+        
+        // Обновление игровой логики
+        function update() {
+            if (!gameRunning) return;
+            
+            // Применяем гравитацию
+            player.velocityY += gravity;
+            
+            // Обновляем позицию игрока
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+            
+            // Проверяем коллизии с блоками
+            player.grounded = false;
+            blocks.forEach(block => {
+                if (
+                    player.x < block.x + block.width &&
+                    player.x + player.width > block.x &&
+                    player.y < block.y + block.height &&
+                    player.y + player.height > block.y
+                ) {
+                    // Коллизия сверху
+                    if (player.velocityY > 0 && player.y < block.y) {
+                        player.y = block.y - player.height;
+                        player.velocityY = 0;
+                        player.grounded = true;
+                    }
+                    // Коллизия снизу
+                    else if (player.velocityY < 0 && player.y + player.height > block.y + block.height) {
+                        player.y = block.y + block.height;
+                        player.velocityY = 0;
+                    }
+                    // Коллизия слева
+                    else if (player.velocityX > 0 && player.x < block.x + block.width) {
+                        player.x = block.x - player.width;
+                    }
+                    // Коллизия справа
+                    else if (player.velocityX < 0 && player.x + player.width > block.x) {
+                        player.x = block.x + block.width;
+                    }
+                }
+            });
+            
+            // Обновляем врагов
+            updateEnemies();
+            
+            // Обновляем босса
+            if (boss) {
+                updateBoss();
+            }
+            
+            // Ограничиваем игрока в пределах мира
+            if (player.x < 0) player.x = 0;
+            if (player.x > 2000) player.x = 2000;
+            if (player.y > canvas.height) {
+                player.y = canvas.height;
+                player.velocityY = 0;
+                player.grounded = true;
+            }
+            
+            // Обновляем камеру (следим за игроком)
+            camera.x = player.x - canvas.width / 2 + player.width / 2;
+            camera.y = player.y - canvas.height / 2 + player.height / 2;
+            
+            // Ограничиваем камеру в пределах мира
+            if (camera.x < 0) camera.x = 0;
+            if (camera.x > 2000 - canvas.width) camera.x = 2000 - canvas.width;
+            if (camera.y < 0) camera.y = 0;
+            if (camera.y > canvas.height) camera.y = canvas.height;
+            
+            // Обновляем UI
+            blocksCountElement.textContent = player.blocks;
+            enemiesDefeatedElement.textContent = player.enemiesDefeated;
+            healthFill.style.width = player.health + '%';
+            
+            // Проверяем условие победы
+            if (gameLevel === 1 && player.enemiesDefeated >= 3) {
+                gameLevel = 2;
+                generateWorld();
+            } else if (gameLevel === 2 && boss && boss.health <= 0) {
+                victoryScreen.style.display = 'flex';
+                gameRunning = false;
+            }
+            
+            // Проверяем условие поражения
+            if (player.health <= 0) {
+                gameOverScreen.style.display = 'flex';
+                gameRunning = false;
+            }
+            
+            // Обновляем перезарядку атаки
+            if (attackCooldown > 0) {
+                attackCooldown--;
+            }
+        }
+        
+        // Обновление логики врагов
+        function updateEnemies() {
+            enemies.forEach((enemy, index) => {
+                // Движение к игроку
+                if (enemy.x < player.x) {
+                    enemy.x += enemy.speed;
+                } else {
+                    enemy.x -= enemy.speed;
+                }
+                
+                // Проверка коллизий с блоками
+                let enemyGrounded = false;
+                blocks.forEach(block => {
+                    if (
+                        enemy.x < block.x + block.width &&
+                        enemy.x + enemy.width > block.x &&
+                        enemy.y < block.y + block.height &&
+                        enemy.y + enemy.height > block.y
+                    ) {
+                        // Коллизия сверху
+                        if (enemy.y < block.y) {
+                            enemy.y = block.y - enemy.height;
+                            enemyGrounded = true;
+                        }
+                    }
+                });
+                
+                // Применяем гравитацию к врагам
+                if (!enemyGrounded) {
+                    enemy.y += 3;
+                }
+                
+                // Проверка атаки врага
+                if (enemy.attackCooldown > 0) {
+                    enemy.attackCooldown--;
+                }
+                
+                // Если враг близко к игроку - атакует
+                const dist = Math.sqrt(Math.pow(enemy.x - player.x, 2) + Math.pow(enemy.y - player.y, 2));
+                if (dist < 50 && enemy.attackCooldown === 0) {
+                    player.health -= enemy.damage;
+                    enemy.attackCooldown = 60; // 1 секунда перезарядки
+                }
+                
+                // Если враг мертв, удаляем его
+                if (enemy.health <= 0) {
+                    enemies.splice(index, 1);
+                    player.enemiesDefeated++;
+                }
+            });
+        }
+        
+        // Обновление логики босса
+        function updateBoss() {
+            // Движение к игроку
+            if (boss.x < player.x) {
+                boss.x += boss.speed;
+            } else {
+                boss.x -= boss.speed;
+            }
+            
+            // Проверка коллизий с блоками
+            let bossGrounded = false;
+            blocks.forEach(block => {
+                if (
+                    boss.x < block.x + block.width &&
+                    boss.x + boss.width > block.x &&
+                    boss.y < block.y + block.height &&
+                    boss.y + boss.height > block.y
+                ) {
+                    // Коллизия сверху
+                    if (boss.y < block.y) {
+                        boss.y = block.y - boss.height;
+                        bossGrounded = true;
+                    }
+                }
+            });
+            
+            // Применяем гравитацию к боссу
+            if (!bossGrounded) {
+                boss.y += 3;
+            }
+            
+            // Проверка атаки босса
+            if (boss.attackCooldown > 0) {
+                boss.attackCooldown--;
+            }
+            
+            // Если босс близко к игроку - атакует
+            const dist = Math.sqrt(Math.pow(boss.x - player.x, 2) + Math.pow(boss.y - player.y, 2));
+            if (dist < 70 && boss.attackCooldown === 0) {
+                player.health -= boss.damage;
+                boss.attackCooldown = 90; // 1.5 секунды перезарядки
+            }
+        }
+        
+        // Атака игрока
+        function playerAttack() {
+            if (attackCooldown > 0) return;
+            
+            attackCooldown = 30; // 0.5 секунды перезарядки
+            
+            // Проверяем, попала ли атака по врагам
+            enemies.forEach(enemy => {
+                const dist = Math.sqrt(Math.pow(enemy.x - player.x, 2) + Math.pow(enemy.y - player.y, 2));
+                if (dist < 60) {
+                    enemy.health -= 10;
+                }
+            });
+            
+            // Проверяем, попала ли атака по боссу
+            if (boss) {
+                const dist = Math.sqrt(Math.pow(boss.x - player.x, 2) + Math.pow(boss.y - player.y, 2));
+                if (dist < 80) {
+                    boss.health -= 5;
+                }
+            }
+        }
+        
+        // Основной игровой цикл
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Очищаем canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Обновляем игровое состояние
+            update();
+            
+            // Отрисовываем игровые объекты
+            drawBlocks();
+            drawEnemies();
+            drawPlayer();
+            
+            // Запускаем следующий кадр
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Обработка нажатий клавиш
+        const keys = {};
+        
+        window.addEventListener('keydown', e => {
+            if (!gameRunning) return;
+            keys[e.key] = true;
+            
+            // Прыжок
+            if ((e.key === ' ' || e.key === 'w' || e.key === 'W' || e.key === 'ц' || e.key === 'Ц') && player.grounded) {
+                player.velocityY = -player.jumpForce;
+            }
+            
+            // Атака
+            if (e.key === ' ') {
+                playerAttack();
+            }
+            
+            // Крафт
+            if (e.key === 'c' || e.key === 'C' || e.key === 'с' || e.key === 'С') {
+                alert('Меню крафта будет здесь!');
+            }
+        });
+        
+        window.addEventListener('keyup', e => {
+            keys[e.key] = false;
+        });
+        
+        // Обработка движения
+        function handleMovement() {
+            player.velocityX = 0;
+            
+            if (keys['a'] || keys['A'] || keys['ф'] || keys['Ф']) {
+                player.velocityX = -player.speed;
+            }
+            if (keys['d'] || keys['D'] || keys['в'] || keys['В']) {
+                player.velocityX = player.speed;
+            }
+        }
+        
+        // Обработка кликов по блокам
+        canvas.addEventListener('click', e => {
+            if (!gameRunning) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left + camera.x;
+            const mouseY = e.clientY - rect.top + camera.y;
+            
+            // Проверяем, кликнули ли мы по блоку
+            for (let i = 0; i < blocks.length; i++) {
+                const block = blocks[i];
+                if (
+                    mouseX > block.x &&
+                    mouseX < block.x + block.width &&
+                    mouseY > block.y &&
+                    mouseY < block.y + block.height
+                ) {
+                    if (blockTypes[block.type].breakable) {
+                        blocks.splice(i, 1);
+                        player.blocks++;
+                    }
+                    break;
+                }
+            }
+        });
+        
+        canvas.addEventListener('contextmenu', e => {
+            if (!gameRunning) return;
+            e.preventDefault();
+            
+            if (player.blocks <= 0) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left + camera.x;
+            const mouseY = e.clientY - rect.top + camera.y;
+            
+            // Проверяем, нет ли коллизий с игроком или другими блоками
+            let canPlace = true;
+            
+            // Проверяем коллизию с игроком
+            if (
+                mouseX > player.x - 40 &&
+                mouseX < player.x + player.width + 40 &&
+                mouseY > player.y - 40 &&
+                mouseY < player.y + player.height + 40
+            ) {
+                canPlace = false;
+            }
+            
+            // Проверяем коллизию с другими блоками
+            blocks.forEach(block => {
+                if (
+                    mouseX > block.x - 40 &&
+                    mouseX < block.x + block.width + 40 &&
+                    mouseY > block.y - 40 &&
+                    mouseY < block.y + block.height + 40
+                ) {
+                    canPlace = false;
+                }
+            });
+            
+            if (canPlace) {
+                blocks.push({
+                    x: Math.round(mouseX / 40) * 40,
+                    y: Math.round(mouseY / 40) * 40,
+                    width: 40,
+                    height: 40,
+                    type: selectedBlock
+                });
+                player.blocks--;
+            }
+        });
+        
+        // Выбор блока в инвентаре
+        inventorySlots.forEach(slot => {
+            slot.addEventListener('click', () => {
+                inventorySlots.forEach(s => s.classList.remove('active'));
+                slot.classList.add('active');
+                selectedBlock = slot.getAttribute('data-block');
+            });
+        });
+        
+        // Кнопка атаки
+        attackBtn.addEventListener('click', playerAttack);
+        
+        // Кнопка крафта
+        craftBtn.addEventListener('click', () => {
+            alert('Меню крафта будет здесь!');
+        });
+        
+        // Кнопка сохранения
+        saveBtn.addEventListener('click', () => {
+            alert('Игра сохранена! (В реальной реализации это отправило бы данные на сервер)');
+            // Здесь был бы код для отправки данных на сервер через PHP
+        });
+        
+        // Кнопка загрузки
+        loadBtn.addEventListener('click', () => {
+            alert('Игра загружена! (В реальной реализации это загрузило бы данные с сервера)');
+            // Здесь был бы код для загрузки данных с сервера через PHP
+        });
+        
+        // Кнопка перезапуска
+        restartBtn.addEventListener('click', () => {
+            gameOverScreen.style.display = 'none';
+            player.health = 100;
+            player.enemiesDefeated = 0;
+            gameLevel = 1;
+            generateWorld();
+            gameRunning = true;
+            gameLoop();
+        });
+        
+        // Кнопка следующего уровня
+        nextLevelBtn.addEventListener('click', () => {
+            victoryScreen.style.display = 'none';
+            player.health = 100;
+            player.enemiesDefeated = 0;
+            gameLevel = 1;
+            generateWorld();
+            gameRunning = true;
+            gameLoop();
+        });
+        
+        // Запуск игры
+        generateWorld();
+        gameLoop();
+        
+        // Запускаем обработку движения
+        setInterval(handleMovement, 1000/60);
+    </script>
+</body>
+</html>

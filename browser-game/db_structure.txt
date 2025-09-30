@@ -1,0 +1,31 @@
+CREATE DATABASE sponge_bob_game;
+
+USE sponge_bob_game;
+
+CREATE TABLE players (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    level INT DEFAULT 1,
+    health INT DEFAULT 100,
+    blocks INT DEFAULT 0,
+    enemies_defeated INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE game_states (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    player_id INT,
+    game_data TEXT,
+    saved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
+
+CREATE TABLE leaderboard (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    player_id INT,
+    score INT DEFAULT 0,
+    completed_level INT DEFAULT 0,
+    achieved_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (player_id) REFERENCES players(id) ON DELETE CASCADE
+);
